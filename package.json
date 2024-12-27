@@ -1,0 +1,18 @@
+{
+   "name": "djs-bot",
+   "version": "0.0.1",
+   "description": "Awesome project developed with TypeORM.",
+   "scripts": {
+      "start": "ts-node src/index.ts",
+      "generate": "orm.cmd migration generate",
+      "migrate": "orm.cmd migration run",
+      "revert": "orm.cmd migration revert",
+      "drop": "orm.cmd schema drop"
+   },
+   "dependencies": {
+      "better-sqlite3": "^9.6.0",
+      "discord.js": "^14.16.3",
+      "reflect-metadata": "^0.2.2",
+      "typeorm": "^0.3.20"
+   }
+}
