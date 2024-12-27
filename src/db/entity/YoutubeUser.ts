@@ -17,6 +17,6 @@ export class YoutubeUser extends IdxEntity {
     streaming: boolean
 
     get url() {
-        return `https://www.youtube.com/${this.id}`
+        return `https://www.youtube.com/channel/${this.id}`
     }
 }

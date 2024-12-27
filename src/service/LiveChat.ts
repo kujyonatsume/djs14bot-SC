@@ -142,7 +142,6 @@ class RunsData {
     url?: string;
 }
 //#endregion
-
 class YoutubeChat {
     //#region YTDataParser
     private ParseActions(jsonElement?: any) {
@@ -497,7 +496,7 @@ class YoutubeChat {
         if (color) return `#${color.toString(16).padStart(6, '0')}`;
     }
     //#endregion
-
+    record = new Map<string,NodeJS.Timeout>()
     constructor(public readonly lang: keyof typeof Localize) { }
     async getChannel(input: string) {
         if (!input.startsWith("http")) {
@@ -509,9 +508,14 @@ class YoutubeChat {
         const id = html.match(/<meta itemprop="identifier" content="(.*?)">/)?.[1]
         const name = html.match(/<meta itemprop="name" content="(.*?)">/)?.[1]
         console.log(id, name);
-        
+
         if (id && name) return { id, name }
 
+    }
+    async isStreaming(YouTubeURLorID: string) {
+        var url = this.resloveStreamUrl(YouTubeURLorID)
+        const html = await (await fetch(url)).text() as string;
+        return !/LIVE_STREAM_OFFLINE/.test(html)
     }
     resloveStreamUrl(input: string) {
         input = input.replace(/https?:\/\/(?:www\.)?youtu\.?be(?:\.com)?\/(?:channel\/|embed\/|live\/|watch.*v=)?/, "").split(/\/|\?/)[0]
@@ -522,38 +526,45 @@ class YoutubeChat {
     }
 
     async LiveChatMessage(YouTubeURLorID: string, action: (message: Message) => any = (m) => console.log(`[${m.name}] ${m.content}`)) {
+        if (this.record.has(YouTubeURLorID)) return
+        
         var url = this.resloveStreamUrl(YouTubeURLorID)
-        console.log(url);
-
-        if (!url) return console.error(`NotYoutubeURL ${url}`);
 
         const html = await (await fetch(url)).text() as string;
         const videoId = html.match(/<link rel="canonical" href="(?:.*?)v=(.*?)">/)?.[1]
-        if (!videoId || /LIVE_STREAM_OFFLINE/.test(html))
-            return console.error('Not Streaming Now');
+        console.log(YouTubeURLorID, videoId)
 
         let [apiKey, continuation] = [...html.matchAll(/"INNERTUBE_API_KEY":"(.*?)"|"continuation":"(.*?)"/g)].map(x => x[1] || x[2])
         if (!(apiKey && continuation))
             return console.error('Failed to fetch required parameters.');
 
         const chatUrl = `https://www.youtube.com/youtubei/v1/live_chat/get_live_chat?key=${apiKey}`; // 替換為實際 API 密鑰
-
-        while (true) {
+        var timer: NodeJS.Timeout
+        timer = setInterval(async () => {
             var data = await (await fetch(chatUrl, {
                 method: "post", body: JSON.stringify({
                     context: { client: { clientName: "WEB", clientVersion: "2.20230228.00.00", ...langs[this.lang] }, },
                     continuation
                 })
             })).json()
-            if (!data) break
+            if (!data) {
+                console.log("Stream End")
+                clearInterval(this.record.get(YouTubeURLorID))
+                this.record.delete(YouTubeURLorID)
+                return
+            }
             const next = this.ParseContinuation(data)
             continuation = next[0]
             const messages = this.ParseActions(data)
-            if (!Array.isArray(messages)) break
+            if (!Array.isArray(messages)) {
+                console.log("Stream End")
+                clearInterval(this.record.get(YouTubeURLorID))
+                this.record.delete(YouTubeURLorID)
+                return
+            }
             for (const msg of messages) action(msg)
-            await new Promise(res => setTimeout(res, ((next[1] ?? 5000) / 2)))
-        }
-        console.log("Stream End")
+        }, 5000)
+        this.record.set(YouTubeURLorID,timer)
     }
 }
 
