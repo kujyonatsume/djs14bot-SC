@@ -5,5 +5,5 @@ import { DatabaseInit } from './db';
 Main()
 async function Main() {
     await DatabaseInit()
-    DiscordStart(config.token)
+    await DiscordStart(config.token)
 }

@@ -4,71 +4,44 @@ const langs = {
     jp: { gl: "JP", hl: "ja" },
     kr: { gl: "KR", hl: "ko" }
 }
+export enum ChatType {
+    System = "System",
+    ChatGeneral = "ChatGeneral",
+    ChatSuperChat = "ChatSuperChat",
+    ChatSuperSticker = "ChatSuperSticker",
+    ChatJoinMember = "ChatJoinMember",
+    ChatMemberUpgrade = "ChatMemberUpgrade",
+    ChatMemberMilestone = "ChatMemberMilestone",
+    ChatMemberGift = "ChatMemberGift",
+    ChatReceivedMemberGift = "ChatReceivedMemberGift",
+    ChatRedirect = "ChatRedirect",
+    ChatPinned = "ChatPinned",
+    MemberUpgrade = "MemberUpgrade",
+    MemberMilestone = "MemberMilestone",
+}
+const ChatMap = {
+    "liveChatViewerEngagementMessageRenderer": ChatType.System,
+    "liveChatModeChangeMessageRenderer": ChatType.System,
+    "liveChatTextMessageRenderer": ChatType.ChatGeneral,
+    "liveChatPaidMessageRenderer": ChatType.ChatSuperChat,
+    "liveChatPaidStickerRenderer": ChatType.ChatSuperSticker,
+    "liveChatMembershipItemRenderer": ChatType.ChatJoinMember,
+    "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer": ChatType.ChatMemberGift,
+    "liveChatSponsorshipsGiftRedemptionAnnouncementRenderer": ChatType.ChatReceivedMemberGift,
+    "liveChatBannerHeaderRenderer": ChatType.ChatPinned,
+    "liveChatBannerRedirectRenderer": ChatType.ChatRedirect,
+}
 const Localize = {
-    en: {
-        ChatGeneral: "General",
-        ChatSuperChat: "Super Chat",
-        ChatSuperSticker: "Super Sticker",
-        ChatJoinMember: "Join Member",
-        ChatMemberUpgrade: "Member Upgrade",
-        ChatMemberMilestone: "Member Milestone",
-        ChatMemberGift: "Member Gift",
-        ChatReceivedMemberGift: "Received Member Gift",
-        ChatRedirect: "Redirect",
-        ChatPinned: "Pinned",
-        MemberUpgrade: "Upgraded membership to",
-        MemberMilestone: "Member for",
-    },
-    zh: {
-        ChatGeneral: "一般",
-        ChatSuperChat: "超級留言",
-        ChatSuperSticker: "超級貼圖",
-        ChatJoinMember: "加入會員",
-        ChatMemberUpgrade: "會員升級",
-        ChatMemberMilestone: "會員里程碑",
-        ChatMemberGift: "贈送會員",
-        ChatReceivedMemberGift: "接收會員贈送",
-        ChatRedirect: "重新導向",
-        ChatPinned: "置頂留言",
-        MemberUpgrade: "頻道會員等級已升級至",
-        MemberMilestone: "已加入會員",
-    },
-    jp: {
-        ChatGeneral: "一般",
-        ChatSuperChat: "スーパーチャット",
-        ChatSuperSticker: "スーパーステッカー",
-        ChatJoinMember: "メンバー登録",
-        ChatMemberUpgrade: "会員アップグレード",
-        ChatMemberMilestone: "会員マイルストーン",
-        ChatMemberGift: "会員ギフト",
-        ChatReceivedMemberGift: "会員プレゼントを受け取る",
-        ChatRedirect: "リダイレクト",
-        ChatPinned: "ピン留め",
-        MemberUpgrade: "にアップグレードされました",
-        MemberMilestone: "メンバー歴",
-    },
-    kr: {
-        ChatGeneral: "일반",
-        ChatSuperChat: "슈퍼 채팅",
-        ChatSuperSticker: "슈퍼 스티커",
-        ChatJoinMember: "회원 가입",
-        ChatMemberUpgrade: "회원 업그레이드",
-        ChatMemberMilestone: "회원 마일스톤",
-        ChatMemberGift: "회원 선물",
-        ChatReceivedMemberGift: "회원 선물 받기",
-        ChatRedirect: "리디렉션",
-        ChatPinned: "고정",
-        MemberUpgrade: "멤버십을",
-        MemberMilestone: "회원 가입 기간",
-    }
-} as const;
-type LocalizeType = typeof Localize
-type LocalizeKey = keyof LocalizeType
-type MessageType<T extends LocalizeKey> = LocalizeType[T][keyof LocalizeType[T]] | "[YouTube]" | "";
+    en: { MemberUpgrade: "Upgraded membership to", MemberMilestone: "Member for" },
+    zh: { MemberUpgrade: "頻道會員等級已升級至", MemberMilestone: "已加入會員", },
+    jp: { MemberUpgrade: "にアップグレードされました", MemberMilestone: "メンバー歴", },
+    kr: { MemberUpgrade: "멤버십을", MemberMilestone: "회원 가입 기간", }
+}
+
 //#region YTDataType
-class Message<T extends LocalizeKey> {
+class Message {
     /** 訊息類型 */
-    type?: MessageType<T>;
+    type?: ChatType;
     /** 使用者頻道ID */
     channelID?: string;
     /** 使用者名稱 */
@@ -170,11 +143,11 @@ class RunsData {
 }
 //#endregion
 
-class YoutubeChat<T extends LocalizeKey> {
+class YoutubeChat {
     //#region YTDataParser
     private ParseActions(jsonElement?: any) {
         if (!jsonElement) return
-        const output: Message<T>[] = [];
+        const output: Message[] = [];
 
         let actions = jsonElement?.continuationContents?.liveChatContinuation?.actions;
 
@@ -309,7 +282,7 @@ class YoutubeChat<T extends LocalizeKey> {
     }
 
     private parseRenderer(jsonElement?: any) {
-        const output: Message<T>[] = [];
+        const output: Message[] = [];
         if ((
             this.setRendererData(output, jsonElement, "liveChatTextMessageRenderer") ||
             this.setRendererData(output, jsonElement, "liveChatPaidMessageRenderer") ||
@@ -332,26 +305,11 @@ class YoutubeChat<T extends LocalizeKey> {
         return output;
     }
 
-    private getRendererDataType(rendererName: string) {
-        return {
-            "liveChatViewerEngagementMessageRenderer": "[YouTube]",
-            "liveChatModeChangeMessageRenderer": "[YouTube]",
-            "liveChatTextMessageRenderer": Localize[this.lang].ChatGeneral,
-            "liveChatPaidMessageRenderer": Localize[this.lang].ChatSuperChat,
-            "liveChatPaidStickerRenderer": Localize[this.lang].ChatSuperSticker,
-            "liveChatMembershipItemRenderer": Localize[this.lang].ChatJoinMember,
-            "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer": Localize[this.lang].ChatMemberGift,
-            "liveChatSponsorshipsGiftRedemptionAnnouncementRenderer": Localize[this.lang].ChatReceivedMemberGift,
-            "liveChatBannerHeaderRenderer": Localize[this.lang].ChatPinned,
-            "liveChatBannerRedirectRenderer": Localize[this.lang].ChatRedirect,
-        }[rendererName] ?? ""
-    }
-
-    private setRendererData(dataSet: Message<T>[], jsonElement: any, rendererName: string) {
+    private setRendererData(dataSet: Message[], jsonElement: any, rendererName: string) {
         if (!(jsonElement = jsonElement?.[rendererName])) return
-        let data = new Message<T>()
+        let data = new Message()
         const messageData = this.parseMessageData(jsonElement);
-        data.type = this.getRendererDataType(rendererName) as MessageType<T>;
+        data.type = ChatMap[rendererName]
         data.channelID = jsonElement?.authorExternalChannelId;
         data.name = this.getAuthorName(jsonElement);
         data.avatarUrl = this.getAuthorPhoto(jsonElement);
@@ -366,9 +324,9 @@ class YoutubeChat<T extends LocalizeKey> {
         if (rendererName === "liveChatMembershipItemRenderer") {
             // Update type based on message content
             if (data.content.includes(Localize[this.lang].MemberUpgrade)) {
-                data.type = Localize[this.lang].ChatMemberUpgrade as MessageType<T>;
+                data.type = ChatType.ChatMemberUpgrade
             } else if (data.content.includes(Localize[this.lang].MemberMilestone)) {
-                data.type = Localize[this.lang].ChatMemberMilestone as MessageType<T>;
+                data.type = ChatType.ChatMemberMilestone
             }
         } else if (rendererName === "liveChatSponsorshipsGiftPurchaseAnnouncementRenderer") {
             const headerRenderer = jsonElement.header?.liveChatSponsorshipsHeaderRenderer;
@@ -540,7 +498,7 @@ class YoutubeChat<T extends LocalizeKey> {
     }
     //#endregion
 
-    constructor(public readonly lang: T) { }
+    constructor(public readonly lang: keyof typeof Localize) { }
     async getChannel(input: string) {
         if (!input.startsWith("http")) {
             if (input.startsWith("UC") && input.length == 24) input = `https://www.youtube.com/channel/${input}`
@@ -548,8 +506,10 @@ class YoutubeChat<T extends LocalizeKey> {
         }
 
         const html = await (await fetch(input)).text() as string;
-        const id = html.match(/<meta itemprop="identifier" href="(.*?)">/)?.[1]
+        const id = html.match(/<meta itemprop="identifier" content="(.*?)">/)?.[1]
         const name = html.match(/<meta itemprop="name" content="(.*?)">/)?.[1]
+        console.log(id, name);
+        
         if (id && name) return { id, name }
 
     }
@@ -561,7 +521,7 @@ class YoutubeChat<T extends LocalizeKey> {
         if (input.length == 11) return `https://www.youtube.com/watch?v=${input}`
     }
 
-    async LiveChatMessage(YouTubeURLorID: string, action: (videoId: string, message: Message<T>) => any = (id, m) => console.log(`[${m.name}] ${m.content}`)) {
+    async LiveChatMessage(YouTubeURLorID: string, action: (message: Message) => any = (m) => console.log(`[${m.name}] ${m.content}`)) {
         var url = this.resloveStreamUrl(YouTubeURLorID)
         console.log(url);
 
@@ -590,7 +550,7 @@ class YoutubeChat<T extends LocalizeKey> {
             continuation = next[0]
             const messages = this.ParseActions(data)
             if (!Array.isArray(messages)) break
-            for (const msg of messages) action(videoId, msg)
+            for (const msg of messages) action(msg)
             await new Promise(res => setTimeout(res, ((next[1] ?? 5000) / 2)))
         }
         console.log("Stream End")

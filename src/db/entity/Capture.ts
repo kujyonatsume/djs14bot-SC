@@ -1,4 +1,5 @@
-import { Entity, Column, IdxEntity, ManyToOne } from "./Entity"
+import { Entity, Column, IdxEntity, ManyToOne, OneToMany } from "./Entity"
+import { UserTarget } from "./UserTarget"
 import { YoutubeUser } from "./YoutubeUser"
 
 
@@ -10,8 +11,8 @@ export class Capture extends IdxEntity {
     @Column({ nullable: false })
     id: string
 
-    @Column({ nullable: true })
-    target?: string
+    @OneToMany(() => UserTarget, x => x.capture, { eager: true })
+    targets: UserTarget[]
 
     @ManyToOne(() => YoutubeUser, x => x.captures)
     user: Promise<YoutubeUser>

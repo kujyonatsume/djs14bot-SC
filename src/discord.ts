@@ -17,7 +17,7 @@ const modules = new Collection<string, Module>()
 
 export const client = new Client({ intents: 3276799 })
 
-export function DiscordStart(token: string, guildId?: string) {
+export async function DiscordStart(token: string, guildId?: string) {
     client.login(token)
     return client.on("ready", async c => {
         for (const [key, Mod] of Object.entries(AppModule)) {
